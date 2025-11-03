@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Breathing Timer</title>
+  <style>
+    body {
+      font-family: sans-serif;
+      text-align: center;
+      padding: 20px;
+      background: #e0f7fa;
+    }
+    input {
+      width: 60px;
+      margin: 5px;
+    }
+    button {
+      margin: 10px;
+      padding: 10px 20px;
+      font-size: 1em;
+    }
+    #phase {
+      font-size: 2em;
+      margin: 20px;
+    }
+  </style>
+</head>
+<body>
+  <h1>Breathing Timer</h1>
+  <div>
+    <label>Breathe In: <input type="number" id="inTime" value="4" /></label>
+    <label>Hold In: <input type="number" id="holdInTime" value="4" /></label>
+    <label>Breathe Out: <input type="number" id="outTime" value="4" /></label>
+    <label>Hold Out: <input type="number" id="holdOutTime" value="4" /></label>
+  </div>
+  <button onclick="startTimer()">Start</button>
+  <button onclick="togglePause()">Pause/Resume</button>
+  <div id="phase">Ready</div>
+  <div id="countdown"></div>
+
+  <audio id="ocean" src="ocean.mp3" loop preload="auto"></audio>
+
+  <script>
+    const phases = ["Breathe In", "Hold In", "Breathe Out", "Hold Out"];
+    let timers = [];
+    let currentPhase = 0;
+    let time = 0;
+    let isPaused = false;
+    let isRunning = false;
+    let ocean = null;
+
+  function startTimer() {
+  timers = [
+    parseInt(document.getElementById("inTime").value),
+    parseInt(document.getElementById("holdInTime").value),
+    parseInt(document.getElementById("outTime").value),
+    parseInt(document.getElementById("holdOutTime").value)
+  ];
+  currentPhase = 0;
+  isPaused = false;
+  isRunning = true;
+
+  // Play ocean sound only after user clicks Start
+  ocean = document.getElementById("ocean");
+  ocean.play().catch(() => {
+    // If blocked, show a message or wait for another interaction
+    console.log("Audio playback was blocked. Tap again to start.");
+  });
+
+  runPhase();
+}
+
+    function runPhase() {
+      if (!isRunning) return;
+      document.getElementById("phase").textContent = phases[currentPhase];
+      time = timers[currentPhase];
+      document.getElementById("countdown").textContent = time;
+      speak(phases[currentPhase], () => speakCountdown());
+    }
+
+    function speakCountdown() {
+      if (!isRunning || isPaused) return;
+      if (time <= 0) {
+        currentPhase = (currentPhase + 1) % phases.length;
+        runPhase();
+        return;
+      }
+      document.getElementById("countdown").textContent = time;
+      speak(time.toString(), () => {
+        time--;
+        speakCountdown();
+      });
+    }
+
+    function speak(text, callback) {
+      const utterance = new SpeechSynthesisUtterance(text);
+      utterance.rate = 1.1;
+      utterance.onend = () => {
+        if (!isPaused && isRunning) callback();
+      };
+      speechSynthesis.cancel(); // Cancel any overlapping speech
+      speechSynthesis.speak(utterance);
+    }
+
+    function togglePause() {
+      if (!isRunning) return;
+      isPaused = !isPaused;
+      if (isPaused) {
+        speechSynthesis.cancel();
+        ocean.pause();
+      } else {
+        ocean.play();
+        speakCountdown();
+      }
+    }
+  </script>
+</body>
+</html>
